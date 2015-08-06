@@ -20,7 +20,7 @@ TypicalX11App$(DOTEXE): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o TypicalX11App$(DOTEXE) $(OBJS) $(LIBS)
 	chmod +x TypicalX11App$(DOTEXE)
 
-TypicalX11App$(DOTOBJ): TypicalX11App.cpp
+TypicalX11App$(DOTOBJ): TypicalX11App.h TypicalX11App.cpp TypicalX11App.xpm
 	$(CXX) -c $(CXXFLAGS) -o TypicalX11App$(DOTOBJ) TypicalX11App.cpp
 
 clean:
