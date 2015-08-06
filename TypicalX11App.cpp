@@ -5,10 +5,8 @@
 #include <cstring>
 #include "TypicalX11App.h"
 #include "TypicalX11App.xpm"
+#include "TypicalX11AppMask.xbm"
 using namespace std;
-
-// number of graphic contexts
-#define NUM_GC      3
 
 // proram name
 #define PROGNAME    "TypicalX11App"
@@ -29,7 +27,9 @@ struct X11App {
     Display *       m_disp;             // X11 display
     Window          m_root_win;         // the root window
     Window          m_win;              // the main window
-    GC              m_gcs[NUM_GC];      // graphic contexts
+    GC              m_gc1;              // graphic context
+    GC              m_gc2;              // graphic context
+    GC              m_gc3;              // graphic context
     bool            m_quit;             // quit flag
     Atom            m_wm_delete_window; // WM_DELETE_WINDOW atom
 
@@ -37,6 +37,7 @@ struct X11App {
     bool            m_ctrl_pressed;     // Is [Ctrl] key pressed?
 
     Pixmap          m_icon_pixmap;      // icon pixmap
+    Pixmap          m_icon_mask;        // icon mask
 
     X11App(int argc, char **argv) : m_argc(argc), m_argv(argv) {
         m_quit = false;
@@ -49,10 +50,13 @@ struct X11App {
         if (m_icon_pixmap != None) {
             XFreePixmap(m_disp, m_icon_pixmap);
         }
-        // free graphic contexts
-        for (int i = 0; i < NUM_GC; ++i) {
-            XFreeGC(m_disp, m_gcs[i]);
+        if (m_icon_mask != None) {
+            XFreePixmap(m_disp, m_icon_mask);
         }
+        // free graphic contexts
+        XFreeGC(m_disp, m_gc1);
+        XFreeGC(m_disp, m_gc2);
+        XFreeGC(m_disp, m_gc3);
         // close display
         XCloseDisplay(m_disp);
     }
@@ -63,6 +67,11 @@ struct X11App {
             m_disp, m_root_win, (char **)TypicalX11App_xpm,
             &m_icon_pixmap,
             NULL, NULL);
+        m_icon_mask = XCreatePixmapFromBitmapData(
+            m_disp, m_root_win, (char *)TypicalX11AppMask_bits,
+            TypicalX11AppMask_width, TypicalX11AppMask_height,
+            WhitePixel(m_disp, 0), BlackPixel(m_disp, 0),
+            1);
         return status == 0;
     }
 
@@ -76,6 +85,13 @@ struct X11App {
         XSetStandardProperties(m_disp, m_win, progname, progname,
             m_icon_pixmap, m_argv, m_argc, psize_hints);
         XFree(psize_hints);
+
+        XWMHints *hints = XAllocWMHints();
+        hints->flags = IconPixmapHint | IconMaskHint;
+        hints->icon_pixmap = m_icon_pixmap;
+        hints->icon_mask = m_icon_mask;
+        XSetWMHints(m_disp, m_win, hints);
+        XFree(hints);
     } // set_standard_properties
 
     bool startup() {
@@ -100,9 +116,9 @@ struct X11App {
                     StructureNotifyMask);
 
                 // create graphic contexts
-                for (int i = 0; i < NUM_GC; ++i) {
-                    m_gcs[i] = XCreateGC(m_disp, m_win, 0, 0);
-                }
+                m_gc1 = XCreateGC(m_disp, m_win, 0, NULL);
+                m_gc2 = XCreateGC(m_disp, m_win, 0, NULL);
+                m_gc3 = XCreateGC(m_disp, m_win, 0, NULL);
 
                 // set WM_DELETE_WINDOW protocol
                 m_wm_delete_window = XInternAtom(m_disp, "WM_DELETE_WINDOW", False);
@@ -184,14 +200,14 @@ struct X11App {
         XClearWindow(m_disp, m_win);
 
         // draw lines
-        XSetForeground(m_disp, m_gcs[0], WhitePixel(m_disp, 0));
-        XSetLineAttributes(m_disp, m_gcs[0], 1, LineSolid, CapRound, JoinRound);
-        XDrawLine(m_disp, m_win, m_gcs[0], 0, 0, width, height);
-        XDrawLine(m_disp, m_win, m_gcs[0], width, 0, 0, height);
+        XSetForeground(m_disp, m_gc1, WhitePixel(m_disp, 0));
+        XSetLineAttributes(m_disp, m_gc1, 1, LineSolid, CapRound, JoinRound);
+        XDrawLine(m_disp, m_win, m_gc1, 0, 0, width, height);
+        XDrawLine(m_disp, m_win, m_gc1, width, 0, 0, height);
 
         // draw string
         Font font = XLoadFont(m_disp, "f*");
-        XSetFont(m_disp, m_gcs[0], font);
+        XSetFont(m_disp, m_gc1, font);
         {
             static char text[] = PROGNAME;
             int text_len = (int)strlen(text);
@@ -202,7 +218,7 @@ struct X11App {
                 XQueryTextExtents(m_disp, font, text, text_len,
                     &direction, &ascent, &descent, &cs);
             }
-            XDrawString(m_disp, m_win, m_gcs[0], 0, ascent, text, text_len);
+            XDrawString(m_disp, m_win, m_gc1, 0, ascent, text, text_len);
         }
         XUnloadFont(m_disp, font);
     }
