@@ -1,8 +1,10 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/xpm.h>
 #include <cstdio>
 #include <cstring>
 #include "TypicalX11App.h"
+#include "TypicalX11App.xpm"
 using namespace std;
 
 // number of graphic contexts
@@ -10,6 +12,14 @@ using namespace std;
 
 // proram name
 #define PROGNAME    "TypicalX11App"
+static char progname[] = PROGNAME;
+
+// size of window
+#define WIN_WIDTH   640
+#define WIN_HEIGHT  400
+
+// border width
+#define BORDER_WIDTH 1
 
 // the application
 struct X11App {
@@ -26,6 +36,8 @@ struct X11App {
     bool            m_shift_pressed;    // Is [Shift] key pressed?
     bool            m_ctrl_pressed;     // Is [Ctrl] key pressed?
 
+    Pixmap          m_icon_pixmap;      // icon pixmap
+
     X11App(int argc, char **argv) : m_argc(argc), m_argv(argv) {
         m_quit = false;
         m_shift_pressed = false;
@@ -33,6 +45,10 @@ struct X11App {
     }
 
     ~X11App() {
+        // free icon pixmap
+        if (m_icon_pixmap != None) {
+            XFreePixmap(m_disp, m_icon_pixmap);
+        }
         // free graphic contexts
         for (int i = 0; i < NUM_GC; ++i) {
             XFreeGC(m_disp, m_gcs[i]);
@@ -40,6 +56,27 @@ struct X11App {
         // close display
         XCloseDisplay(m_disp);
     }
+
+    bool load_icon_pixmap() {
+        m_icon_pixmap = None;
+        int status = XpmCreatePixmapFromData(
+            m_disp, m_root_win, (char **)TypicalX11App_xpm,
+            &m_icon_pixmap,
+            NULL, NULL);
+        return status == 0;
+    }
+
+    void set_standard_properties() {
+        XSizeHints *psize_hints = XAllocSizeHints();
+        psize_hints->flags = PMinSize | PMaxSize;
+        psize_hints->min_width = WIN_WIDTH;
+        psize_hints->min_height = WIN_HEIGHT;
+        psize_hints->max_width = WIN_WIDTH;
+        psize_hints->max_height = WIN_HEIGHT;
+        XSetStandardProperties(m_disp, m_win, progname, progname,
+            m_icon_pixmap, m_argv, m_argc, psize_hints);
+        XFree(psize_hints);
+    } // set_standard_properties
 
     bool startup() {
         // open display
@@ -50,7 +87,7 @@ struct X11App {
 
             // create the main window
             m_win = XCreateSimpleWindow(m_disp, m_root_win,
-                0, 0, 200, 150, 1,
+                0, 0, WIN_WIDTH, WIN_HEIGHT, BORDER_WIDTH,
                 WhitePixel(m_disp, 0),
                 BlackPixel(m_disp, 0)
             );
@@ -70,6 +107,12 @@ struct X11App {
                 // set WM_DELETE_WINDOW protocol
                 m_wm_delete_window = XInternAtom(m_disp, "WM_DELETE_WINDOW", False);
                 XSetWMProtocols(m_disp, m_win, &m_wm_delete_window, 1);
+
+                // load icon pixmap
+                load_icon_pixmap();
+                
+                // set standard properties
+                set_standard_properties();
 
                 // show the window
                 XMapWindow(m_disp, m_win);

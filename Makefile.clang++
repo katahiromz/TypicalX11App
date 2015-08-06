@@ -12,7 +12,7 @@ CXXFLAGS = -m32 -std=c++11 -pedantic -Wall $(DEF1)
 
 PROGRAM = TypicalX11App$(DOTEXE)
 OBJS = TypicalX11App$(DOTOBJ)
-LIBS = -lX11
+LIBS = -lX11 -lXpm
 
 all: TypicalX11App$(DOTEXE)
 
