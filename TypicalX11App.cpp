@@ -294,16 +294,19 @@ struct X11App {
 int main(int argc, char **argv) {
     int ret;
 
-    // X11 multithread
-    XInitThreads();
+    try {
+        // X11 multithread
+        XInitThreads();
 
-    {
         X11App app(argc, argv);
         if (app.startup()) {
             ret = app.run();
         } else {
             ret = 1;
         }
+    } catch (const std::bad_alloc&) {
+        fprintf(stderr, PROGNAME ": ERROR: Out of memory\n");
+        ret = -1;
     }
 
     return ret;
