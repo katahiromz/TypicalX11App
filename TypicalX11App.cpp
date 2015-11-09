@@ -145,7 +145,9 @@ struct X11App {
         XEvent e;
         while (!m_quit) {
             if (XPending(m_disp)) {
+                XLockDisplay(m_disp);   // multithread support
                 XNextEvent(m_disp, &e);
+                XUnlockDisplay(m_disp); // multithread support
                 switch (e.type) {
                 case Expose:
                     onExpose(&e.xexpose);
@@ -290,9 +292,19 @@ struct X11App {
 
 // the main function
 int main(int argc, char **argv) {
-    X11App app(argc, argv);
-    if (!app.startup()) {
-        return 1;
+    int ret;
+
+    // X11 multithread
+    XInitThreads();
+
+    {
+        X11App app(argc, argv);
+        if (app.startup()) {
+            ret = app.run();
+        } else {
+            ret = 1;
+        }
     }
-    return app.run();
+
+    return ret;
 }
