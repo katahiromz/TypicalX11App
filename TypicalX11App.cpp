@@ -150,6 +150,7 @@ struct X11App {
     // show version
     void show_version(void) {
         printf("%s\n", VERSION_INFO_STRING);
+        printf("\n");
     } // show_version
 
     bool parse_command_line(int& ret) {
