@@ -1,0 +1,34 @@
+# Makefile for 64-bit clang++
+# Usage: make -f projects/Makefile.clang++64
+##############################################################################
+
+DOTOBJ = .o
+DOTEXE =
+
+DEF1 = -O3 -DNDEBUG
+#DEF1 = -g -ggdb -D_DEBUG
+
+CXX = clang++
+CXXFLAGS = -m64 -std=c++11 -pedantic -Wall $(DEF1)
+
+##############################################################################
+
+GOAL = TypicalX11App$(DOTEXE)
+OBJS = TypicalX11App$(DOTOBJ)
+LIBS = -lX11 -lXpm
+
+##############################################################################
+
+all: $(GOAL)
+
+$(GOAL): $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $(GOAL) $(OBJS) $(LIBS)
+	chmod +x $(GOAL)
+
+TypicalX11App$(DOTOBJ): TypicalX11App.h TypicalX11App.cpp TypicalX11App.xpm
+	$(CXX) -c $(CXXFLAGS) -o TypicalX11App$(DOTOBJ) TypicalX11App.cpp
+
+clean:
+	rm -f *.o
+
+##############################################################################

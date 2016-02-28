@@ -13,3 +13,8 @@ Release/
 *.opensdf
 *.user
 *.filters
+CMakeFiles
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+TypicalX11App

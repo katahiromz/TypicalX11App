@@ -1,16 +1,35 @@
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/xpm.h>
-#include <cstdio>
-#include <cstring>
+// TypicalX11App.cpp --- An X11 application
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// X Window System-related
+
+#include <X11/Xlib.h>   // X library
+#include <X11/Xutil.h>  // X11 utility
+#include <X11/xpm.h>    // Xpm
+
+//////////////////////////////////////////////////////////////////////////////
+// C++ headers
+
+#include <new>          // for std::bad_alloc
+#include <string>       // for std::string
+#include <vector>       // for std::vector
+
+//////////////////////////////////////////////////////////////////////////////
+// C headers
+
+#include <cstdio>       // for std::printf, std::fprintf, ...
+#include <cstring>      // for std::strlen, ...
+
+//////////////////////////////////////////////////////////////////////////////
+// private headers
+
+#include "config.h"
 #include "TypicalX11App.h"
 #include "TypicalX11App.xpm"
 #include "TypicalX11AppMask.xbm"
-using namespace std;
 
-// proram name
-#define PROGNAME    "TypicalX11App"
-static char progname[] = PROGNAME;
+//////////////////////////////////////////////////////////////////////////////
 
 // size of window
 #define WIN_WIDTH   640
@@ -19,47 +38,69 @@ static char progname[] = PROGNAME;
 // border width
 #define BORDER_WIDTH 1
 
+//////////////////////////////////////////////////////////////////////////////
+
 // the application
 struct X11App {
     int             m_argc;             // number of command line paramters
     char **         m_argv;             // command line paramters
 
     Display *       m_disp;             // X11 display
-    Window          m_root_win;         // the root window
     Window          m_win;              // the main window
-    GC              m_gc1;              // graphic context
-    GC              m_gc2;              // graphic context
-    GC              m_gc3;              // graphic context
     bool            m_quit;             // quit flag
-    Atom            m_wm_delete_window; // WM_DELETE_WINDOW atom
-
     bool            m_shift_pressed;    // Is [Shift] key pressed?
     bool            m_ctrl_pressed;     // Is [Ctrl] key pressed?
+
+    std::string     m_option;           // option for example
+    std::vector<std::string> m_files;   // target files
+
+    Atom            m_wm_delete_window; // WM_DELETE_WINDOW atom
+
+    Window          m_root_win;         // the root window
 
     Pixmap          m_icon_pixmap;      // icon pixmap
     Pixmap          m_icon_mask;        // icon mask
 
-    X11App(int argc, char **argv) : m_argc(argc), m_argv(argv) {
-        m_quit = false;
-        m_shift_pressed = false;
-        m_ctrl_pressed = false;
+    GC              m_gc1;              // graphic context
+    GC              m_gc2;              // graphic context
+    GC              m_gc3;              // graphic context
+
+    X11App(int argc, char **argv) :
+        m_argc(argc),
+        m_argv(argv),
+        m_disp(NULL),
+        m_win(None),
+        m_quit(false),
+        m_shift_pressed(false),
+        m_ctrl_pressed(false),
+        m_option("(none)"),
+        m_root_win(None),
+        m_icon_pixmap(None),
+        m_icon_mask(None)
+    {
     }
 
     ~X11App() {
-        // free icon pixmap
-        if (m_icon_pixmap != None) {
-            XFreePixmap(m_disp, m_icon_pixmap);
+        if (m_disp != NULL) {
+            if (m_win != None) {
+                // free icon pixmap
+                if (m_icon_pixmap != None) {
+                    XFreePixmap(m_disp, m_icon_pixmap);
+                }
+                if (m_icon_mask != None) {
+                    XFreePixmap(m_disp, m_icon_mask);
+                }
+
+                // free graphic contexts
+                XFreeGC(m_disp, m_gc1);
+                XFreeGC(m_disp, m_gc2);
+                XFreeGC(m_disp, m_gc3);
+            }
+
+            // close display
+            XCloseDisplay(m_disp);
         }
-        if (m_icon_mask != None) {
-            XFreePixmap(m_disp, m_icon_mask);
-        }
-        // free graphic contexts
-        XFreeGC(m_disp, m_gc1);
-        XFreeGC(m_disp, m_gc2);
-        XFreeGC(m_disp, m_gc3);
-        // close display
-        XCloseDisplay(m_disp);
-    }
+    } // ~X11App
 
     bool load_icon_pixmap() {
         m_icon_pixmap = None;
@@ -82,7 +123,8 @@ struct X11App {
         psize_hints->min_height = WIN_HEIGHT;
         psize_hints->max_width = WIN_WIDTH;
         psize_hints->max_height = WIN_HEIGHT;
-        XSetStandardProperties(m_disp, m_win, progname, progname,
+        XSetStandardProperties(m_disp, m_win,
+            PROGRAM_NAME, PROGRAM_NAME,
             m_icon_pixmap, m_argv, m_argc, psize_hints);
         XFree(psize_hints);
 
@@ -94,51 +136,105 @@ struct X11App {
         XFree(hints);
     } // set_standard_properties
 
+    // show help
+    void show_help() {
+        printf("%s by %s\n", PROGRAM_NAME, PROGRAM_AUTHORS);
+        printf("Usage: %s [options] files...\n", PROGRAM_NAME);
+        printf("Options:\n");
+        printf("--help          show this help\n");
+        printf("--version       show version info\n");
+        printf("--option arg    set optional option\n");
+        printf("\n");
+    } // show_help
+
+    // show version
+    void show_version(void) {
+        printf("%s\n", VERSION_INFO_STRING);
+    } // show_version
+
+    bool parse_command_line(int& ret) {
+        ret = 0;
+        for (int i = 1; i < m_argc; ++i) {
+            if (m_argv[i][0] == '-') {
+                if (strcmp(m_argv[i], "--help") == 0) {
+                    show_help();
+                    return false;
+                }
+                if (strcmp(m_argv[i], "--version") == 0) {
+                    show_version();
+                    return false;
+                }
+                if (strcmp(m_argv[i], "--option") == 0) {
+                    if (i + 1 < m_argc) {
+                        m_option = m_argv[++i];
+                        continue;
+                    }
+                    fprintf(stderr,
+                        "%s: ERROR: option '--option' requires a parameter\n",
+                        PROGRAM_NAME);
+                    ret = 1;
+                    return false;
+                }
+                fprintf(stderr, "%s: ERROR: invalid argument '%s'\n",
+                    PROGRAM_NAME, m_argv[i]);
+                ret = 2;
+                return false;
+            } else {
+                m_files.push_back(m_argv[i]);
+            }
+        }
+        return true;
+    } // parse_command_line
+
     bool startup() {
         // open display
         m_disp = XOpenDisplay(NULL);
-        if (m_disp != NULL) {
-            // get the root window
-            m_root_win = RootWindow(m_disp, 0);
-
-            // create the main window
-            m_win = XCreateSimpleWindow(m_disp, m_root_win,
-                0, 0, WIN_WIDTH, WIN_HEIGHT, BORDER_WIDTH,
-                WhitePixel(m_disp, 0),
-                BlackPixel(m_disp, 0)
-            );
-            if (m_win != 0) {
-                // set event masks
-                XSelectInput(m_disp, m_win,
-                    ExposureMask |
-                    ButtonPressMask | ButtonReleaseMask | ButtonMotionMask |
-                    KeyPressMask | KeyReleaseMask |
-                    StructureNotifyMask);
-
-                // create graphic contexts
-                m_gc1 = XCreateGC(m_disp, m_win, 0, NULL);
-                m_gc2 = XCreateGC(m_disp, m_win, 0, NULL);
-                m_gc3 = XCreateGC(m_disp, m_win, 0, NULL);
-
-                // set WM_DELETE_WINDOW protocol
-                m_wm_delete_window = XInternAtom(m_disp, "WM_DELETE_WINDOW", False);
-                XSetWMProtocols(m_disp, m_win, &m_wm_delete_window, 1);
-
-                // load icon pixmap
-                load_icon_pixmap();
-                
-                // set standard properties
-                set_standard_properties();
-
-                // show the window
-                XMapWindow(m_disp, m_win);
-                return true;
-            } else {
-                fprintf(stderr, PROGNAME ": ERROR: XCreateSimpleWindow fails\n");
-            }
+        if (m_disp == NULL) {
+            return false;
         }
-        return false;
-    }
+
+        // get the root window
+        m_root_win = RootWindow(m_disp, 0);
+
+        // create the main window
+        m_win = XCreateSimpleWindow(m_disp, m_root_win,
+            0, 0, WIN_WIDTH, WIN_HEIGHT, BORDER_WIDTH,
+            WhitePixel(m_disp, 0),
+            BlackPixel(m_disp, 0)
+        );
+        if (m_win == None) {
+            fprintf(stderr, "%s: ERROR: XCreateSimpleWindow fails\n",
+                PROGRAM_NAME);
+            return false;
+        }
+
+        // set event masks
+        XSelectInput(m_disp, m_win,
+            ExposureMask |
+            ButtonPressMask | ButtonReleaseMask | ButtonMotionMask |
+            KeyPressMask | KeyReleaseMask |
+            StructureNotifyMask);
+
+        // create graphic contexts
+        m_gc1 = XCreateGC(m_disp, m_win, 0, NULL);
+        m_gc2 = XCreateGC(m_disp, m_win, 0, NULL);
+        m_gc3 = XCreateGC(m_disp, m_win, 0, NULL);
+
+        // set WM_DELETE_WINDOW protocol
+        m_wm_delete_window = XInternAtom(m_disp, "WM_DELETE_WINDOW", False);
+        XSetWMProtocols(m_disp, m_win, &m_wm_delete_window, 1);
+
+        // load icon pixmap
+        load_icon_pixmap();
+
+        // set standard properties
+        set_standard_properties();
+
+        // show the window
+        XMapWindow(m_disp, m_win);
+
+        return true;
+    } // startup
 
     int run() {
         // event loop
@@ -182,7 +278,7 @@ struct X11App {
             }
         }
         return 0;
-    }
+    } // run
 
     //
     // event handlers
@@ -211,7 +307,7 @@ struct X11App {
         Font font = XLoadFont(m_disp, "f*");
         XSetFont(m_disp, m_gc1, font);
         {
-            static char text[] = PROGNAME;
+            static char text[] = PROGRAM_NAME;
             int text_len = (int)strlen(text);
             int ascent;
             {
@@ -288,9 +384,11 @@ struct X11App {
         XSetCloseDownMode(m_disp, DestroyAll);
         m_quit = true;
     }
-};
+}; // struct X11App
 
+//////////////////////////////////////////////////////////////////////////////
 // the main function
+
 int main(int argc, char **argv) {
     int ret;
 
@@ -299,15 +397,20 @@ int main(int argc, char **argv) {
         XInitThreads();
 
         X11App app(argc, argv);
-        if (app.startup()) {
-            ret = app.run();
-        } else {
-            ret = 1;
+
+        if (app.parse_command_line(ret)) {
+            if (app.startup()) {
+                ret = app.run();
+            } else {
+                ret = 1;
+            }
         }
     } catch (const std::bad_alloc&) {
-        fprintf(stderr, PROGNAME ": ERROR: Out of memory\n");
+        fprintf(stderr, "%s: ERROR: Out of memory\n", PROGRAM_NAME);
         ret = -1;
     }
 
     return ret;
-}
+} // main
+
+//////////////////////////////////////////////////////////////////////////////

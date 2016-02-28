@@ -1,0 +1,33 @@
+// config.h --- configuration file
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// versioning
+
+#define PROGRAM_MAJOR  @PROGRAM_MAJOR@
+#define PROGRAM_MINOR  @PROGRAM_MINOR@
+#define PROGRAM_BUILD  @PROGRAM_BUILD@
+
+//////////////////////////////////////////////////////////////////////////////
+// stringification
+
+#define STRINGIFY(id)   #id
+#define XSTRINGIFY(id)  STRINGIFY(id)
+
+//////////////////////////////////////////////////////////////////////////////
+// program information
+
+// TODO: Set the program information properly
+#define PROGRAM_NAME        "@PROGRAM_NAME@"
+#define PROGRAM_AUTHORS     "@PROGRAM_AUTHORS@"
+#define PROGRAM_YEARS       "@PROGRAM_YEARS@"
+
+#define VERSION_STRING \
+    XSTRINGIFY(PROGRAM_MAJOR) "." \
+    XSTRINGIFY(PROGRAM_MINOR) "." \
+    XSTRINGIFY(PROGRAM_BUILD)
+
+#define VERSION_INFO_STRING \
+    PROGRAM_NAME " " VERSION_STRING " by " PROGRAM_AUTHORS
+
+//////////////////////////////////////////////////////////////////////////////
