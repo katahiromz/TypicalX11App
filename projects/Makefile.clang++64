@@ -13,17 +13,20 @@ CXXFLAGS = -m64 -std=c++11 -pedantic -Wall $(DEF1)
 
 ##############################################################################
 
-GOAL = TypicalX11App$(DOTEXE)
+PROGRAM = TypicalX11App$(DOTEXE)
+
 OBJS = TypicalX11App$(DOTOBJ)
 LIBS = -lX11 -lXpm
 
+GOALS = $(PROGRAM)
+
 ##############################################################################
 
-all: $(GOAL)
+all: $(GOALS)
 
-$(GOAL): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $(GOAL) $(OBJS) $(LIBS)
-	chmod +x $(GOAL)
+$(PROGRAM): $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $(PROGRAM) $(OBJS) $(LIBS)
+	chmod +x $(PROGRAM)
 
 TypicalX11App$(DOTOBJ): TypicalX11App.h TypicalX11App.cpp TypicalX11App.xpm
 	$(CXX) -c $(CXXFLAGS) -o TypicalX11App$(DOTOBJ) TypicalX11App.cpp
