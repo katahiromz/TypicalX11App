@@ -15,6 +15,6 @@ Release/
 *.filters
 CMakeFiles
 CMakeCache.txt
-cmake_install.cmake
+*.cmake
 Makefile
 TypicalX11App

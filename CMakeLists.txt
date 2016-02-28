@@ -17,7 +17,7 @@ set(PROGRAM_AUTHORS "Katayama Hirofumi MZ")
 set(PROGRAM_YEARS "2015-2016")
 
 # check build type
-if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+if (NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type selected, default to Debug")
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
