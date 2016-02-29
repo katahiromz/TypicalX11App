@@ -13,8 +13,11 @@ Release/
 *.opensdf
 *.user
 *.filters
+*.idb
 CMakeFiles
 CMakeCache.txt
 *.cmake
 Makefile
 TypicalX11App
+*.autosave
+*~

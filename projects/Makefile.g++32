@@ -1,4 +1,4 @@
-# Makefile for 32-bit g++
+# Makefile for 32-bit Linux g++                             -*- Makefile -*-
 # Usage: make -f projects/Makefile.g++32
 ##############################################################################
 

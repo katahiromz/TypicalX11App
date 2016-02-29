@@ -1,4 +1,4 @@
-# Makefile for 64-bit g++
+# Makefile for 64-bit Linux g++                             -*- Makefile -*-
 # Usage: make -f projects/Makefile.g++64
 ##############################################################################
 

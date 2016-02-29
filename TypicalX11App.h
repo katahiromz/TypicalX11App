@@ -1,4 +1,4 @@
-// TypicalX11App.h --- An X11 application
+// TypicalX11App.h --- An X11 application                       -*- C++ -*-
 //////////////////////////////////////////////////////////////////////////////
 
 #ifndef TYPICALX11APP_H_

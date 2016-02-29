@@ -1,4 +1,4 @@
-# Makefile for 64-bit clang++
+# Makefile for 64-bit Linux clang++                         -*- Makefile -*-
 # Usage: make -f projects/Makefile.clang++64
 ##############################################################################
 
